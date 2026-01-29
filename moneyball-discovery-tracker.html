@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Moneyball Discovery Tracker</title>
+  <style>
+    :root{
+      --color-primary:#0047AB;
+      --color-primary-dark:#003580;
+      --color-accent:#FF8C00;
+      --color-success:#00A8E8;
+      --color-warning:#FFA500;
+      --color-danger:#EF4444;
+      --color-gray-50:#F9FAFB;
+      --color-gray-100:#F3F4F6;
+      --color-gray-200:#E5E7EB;
+      --color-gray-300:#D1D5DB;
+      --color-gray-400:#9CA3AF;
+      --color-gray-600:#4B5563;
+      --color-gray-800:#1F2937;
+      --color-gray-900:#111827;
+      --shadow-sm:0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md:0 4px 6px rgba(0,0,0,0.07);
+      --shadow-lg:0 10px 15px rgba(0,0,0,0.1);
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{
+      height:100%;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      background:var(--color-gray-50);
+      color:var(--color-gray-900);
+    }
+    body{display:flex;flex-direction:column;overflow:hidden}
+    .app-container{display:flex;height:100vh;gap:12px;padding:12px;background:var(--color-gray-50)}
+
+    .account-panel{width:280px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:var(--shadow-md);overflow:hidden}
+    .account-panel-header{padding:16px;background:var(--color-primary);color:#fff;font-weight:600;font-size:14px;text-transform:uppercase;letter-spacing:0.5px}
+    .account-list{flex:1;overflow-y:auto;padding:8px}
+    .account-item{padding:12px;margin-bottom:6px;background:var(--color-gray-50);border-left:4px solid transparent;border-radius:4px;cursor:pointer;font-size:13px;transition:all .2s ease;display:flex;justify-content:space-between;align-items:center}
+    .account-item:hover{background:var(--color-gray-100);border-left-color:var(--color-primary)}
+    .account-item.active{background:var(--color-primary);color:#fff;border-left-color:var(--color-accent);border-left-width:6px;font-weight:600;box-shadow:inset -3px 0 0 var(--color-accent)}
+    .account-progress{font-size:11px;opacity:.7;white-space:nowrap}
+    .account-item.active .account-progress{opacity:1}
+    .add-account-btn{margin:8px;padding:10px 12px;background:var(--color-primary);color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;transition:background .2s ease}
+    .add-account-btn:hover{background:var(--color-primary-dark);box-shadow:0 0 0 2px var(--color-accent)}
+
+    .discovery-panel{flex:1;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:var(--shadow-md);overflow:hidden}
+    .discovery-header{padding:16px;background:linear-gradient(135deg,var(--color-primary) 0%,var(--color-primary-dark) 100%);color:#fff}
+    .discovery-title{font-size:18px;font-weight:700;margin-bottom:4px}
+    .discovery-subtitle{font-size:12px;opacity:.9}
+    .discovery-content{flex:1;overflow-y:auto;padding:16px}
+
+    .account-details{background:var(--color-gray-50);padding:12px;border-radius:6px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px}
+    .detail-field{display:flex;flex-direction:column}
+    .detail-label{font-weight:600;font-size:11px;text-transform:uppercase;color:var(--color-gray-600);margin-bottom:4px}
+    .detail-value{font-size:13px;color:var(--color-gray-900)}
+
+    .questions-container{display:flex;flex-direction:column;gap:12px}
+    .question-card{background:var(--color-gray-50);border:2px solid var(--color-gray-200);border-radius:6px;padding:12px;transition:all .2s ease}
+    .question-card.next{border-color:var(--color-accent);background:#FFF5EB;box-shadow:0 0 0 3px rgba(255,140,0,0.2)}
+    .question-card.answered{background:#F0FDF4;border-color:var(--color-success)}
+    .question-num{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--color-gray-600);letter-spacing:.5px;margin-bottom:6px}
+    .question-text{font-size:13px;font-weight:600;color:var(--color-gray-900);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+    .question-text::before{content:'?';display:flex;align-items:center;justify-content:center;width:20px;height:20px;background:var(--color-primary);color:#fff;border-radius:50%;font-size:12px;font-weight:700}
+    .question-card.answered .question-text::before{content:'✓';background:var(--color-success)}
+    .question-card.next .question-text::before{content:'→';background:var(--color-accent);animation:pulse-arrow 1s infinite}
+    @keyframes pulse-arrow{0%,100%{transform:translateX(0)}50%{transform:translateX(4px)}}
+
+    .question-input{width:100%;padding:8px 10px;border:1px solid var(--color-gray-300);border-radius:4px;font-size:13px;font-family:inherit;transition:border-color .2s ease;color:#000}
+    .question-input:focus{outline:none;border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(255,140,0,0.2)}
+    textarea.question-input{resize:vertical;min-height:60px}
+
+    .saved-indicator{font-size:11px;color:var(--color-success);margin-top:6px;opacity:0;transition:opacity .3s ease;display:flex;align-items:center;gap:4px}
+    .saved-indicator.show{opacity:1}
+    .saved-indicator::before{content:'✓';font-weight:700}
+
+    .summary-panel{width:300px;display:flex;flex-direction:column;background:#fff;border-radius:8px;box-shadow:var(--shadow-md);overflow:hidden}
+    .summary-header{padding:16px;background:var(--color-gray-800);color:#fff;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+    .summary-content{flex:1;overflow-y:auto;padding:16px;font-size:13px;line-height:1.6}
+    .summary-section{margin-bottom:16px}
+    .summary-section-title{font-weight:700;color:var(--color-primary);margin-bottom:8px;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+    .summary-item{display:flex;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--color-gray-200)}
+    .summary-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+    .summary-label{font-weight:600;color:var(--color-gray-600);min-width:70px;flex-shrink:0}
+    .summary-value{color:var(--color-gray-900);word-break:break-word}
+    .progress-bar{background:var(--color-gray-200);height:6px;border-radius:3px;overflow:hidden;margin-bottom:12px}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--color-success) 0%,var(--color-primary) 100%);transition:width .3s ease}
+    .progress-text{font-size:12px;color:var(--color-gray-600);margin-bottom:12px}
+
+    .summary-controls{padding:12px;border-top:1px solid var(--color-gray-200);display:flex;flex-direction:column;gap:8px}
+
+    .btn{padding:10px 12px;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s ease;text-align:center}
+    .btn-primary{background:var(--color-primary);color:#fff;border:2px solid transparent}
+    .btn-primary:hover{background:var(--color-primary-dark);border-color:var(--color-accent);box-shadow:0 0 0 2px rgba(255,140,0,0.3)}
+    .btn-secondary{background:var(--color-gray-200);color:var(--color-gray-900)}
+    .btn-secondary:hover{background:var(--color-gray-300)}
+
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center}
+    .modal.active{display:flex}
+    .modal-content{background:#fff;border-radius:8px;padding:24px;max-width:400px;width:90%;box-shadow:var(--shadow-lg)}
+    .modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+    .form-group{margin-bottom:12px;display:flex;flex-direction:column}
+    .form-label{font-size:13px;font-weight:600;margin-bottom:4px;color:var(--color-gray-900)}
+    .form-input{padding:8px 10px;border:1px solid var(--color-gray-300);border-radius:4px;font-size:13px;font-family:inherit;color:#000}
+    .form-input:focus{outline:none;border-color:var(--color-accent);box-shadow:0 0 0 3px rgba(255,140,0,0.2)}
+    select.form-input option{color:#000;background:#fff}
+    .modal-buttons{display:flex;gap:8px;margin-top:16px}
+    .modal-buttons .btn{flex:1}
+
+    .gs-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:2500;align-items:center;justify-content:center}
+    .gs-modal.active{display:flex}
+    .gs-content{background:#fff;border-radius:10px;padding:18px;max-width:720px;width:92%;box-shadow:0 20px 25px rgba(0,0,0,0.15);max-height:85vh;overflow-y:auto}
+    .gs-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+    .gs-title-wrap{display:flex;gap:12px;align-items:center}
+    .gs-emoji{font-size:28px}
+    .gs-title{font-size:16px;font-weight:800;color:var(--color-primary);line-height:1.2}
+    .gs-subtitle{font-size:12px;color:var(--color-gray-600);margin-top:2px}
+    .gs-close{background:var(--color-gray-200);border:none;border-radius:6px;padding:8px 10px;cursor:pointer;font-weight:700}
+    .gs-close:hover{background:var(--color-gray-300)}
+    .gs-block{border:1px solid var(--color-gray-200);border-left:5px solid var(--color-accent);background:var(--color-gray-50);border-radius:8px;padding:12px;margin-top:12px}
+    .gs-block h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--color-gray-600);margin-bottom:8px}
+    .gs-text{background:#fff;border:1px solid var(--color-gray-200);border-radius:6px;padding:10px;font-size:13px;line-height:1.5;white-space:pre-wrap}
+    .gs-actions{display:flex;gap:8px;margin-top:10px}
+    .gs-actions button{flex:1}
+    .gs-foot{display:flex;gap:12px;margin-top:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .gs-foot label{font-size:12px;color:var(--color-gray-600);display:flex;align-items:center;gap:8px}
+    .gs-foot .btn-primary{min-width:220px}
+
+    ::-webkit-scrollbar{width:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--color-gray-300);border-radius:3px}
+    ::-webkit-scrollbar-thumb:hover{background:var(--color-gray-400)}
+
+    @media (max-width:1200px){.account-panel{width:220px}.summary-panel{width:250px}}
+    @media (max-width:900px){.app-container{flex-direction:column}.account-panel,.summary-panel{width:100%;max-height:25vh}.discovery-panel{max-height:50vh}}
+
+    .empty-state{text-align:center;padding:32px 16px;color:var(--color-gray-600)}
+    .empty-state-icon{font-size:32px;margin-bottom:12px;opacity:.5}
+    .empty-state-text{font-size:14px;margin-bottom:16px}
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="account-panel">
+      <div class="account-panel-header">Your 25 Accounts</div>
+      <div class="account-list" id="accountList"></div>
+      <button class="add-account-btn" id="addAccountBtn">+ Add Account</button>
+    </div>
+
+    <div class="discovery-panel">
+      <div class="discovery-header">
+        <div class="discovery-title" id="discoveryTitle">Welcome to Moneyball Discovery</div>
+        <div class="discovery-subtitle" id="discoverySubtitle">Select or add an account to begin reconnaissance</div>
+      </div>
+      <div class="discovery-content" id="discoveryContent">
+        <div class="empty-state">
+          <div class="empty-state-icon">⚾</div>
+          <div class="empty-state-text">Start by adding your first account or selecting one from the list.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-panel">
+      <div class="summary-header">Account Intelligence</div>
+      <div class="summary-content" id="summaryContent">
+        <div class="empty-state">
+          <div class="empty-state-icon">📊</div>
+          <div class="empty-state-text">Summary will appear here as you fill in discovery questions.</div>
+        </div>
+      </div>
+      <div class="summary-controls">
+        <button class="btn btn-primary" id="exportJsonBtn">Export as JSON</button>
+        <button class="btn btn-secondary" id="exportCsvBtn">Export as CSV</button>
+        <button class="btn btn-secondary" id="deleteAccountBtn">Delete Account</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="addAccountModal">
+    <div class="modal-content">
+      <div class="modal-title">Add New Account</div>
+      <div class="form-group">
+        <label class="form-label">Account Name *</label>
+        <input type="text" class="form-input" id="accountNameInput" placeholder="Acme Corp" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Industry</label>
+        <input type="text" class="form-input" id="accountIndustryInput" placeholder="Technology" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contact Person</label>
+        <input type="text" class="form-input" id="accountContactInput" placeholder="John Smith" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Starting Service (optional)</label>
+        <select class="form-input" id="accountCategoryInput">
+          <option value="">Select a service...</option>
+          <option value="Managed Print Services">Managed Print Services (CMPS)</option>
+          <option value="Copiers / MFPs">Copiers / MFPs</option>
+          <option value="Audio Visual">Audio Visual (AV)</option>
+          <option value="Cyber Security">Cyber Security</option>
+          <option value="UCaaS / VoIP">UCaaS / VoIP</option>
+          <option value="Managed IT">Managed IT (MSP)</option>
+          <option value="Custom Software">Custom Software</option>
+        </select>
+      </div>
+      <div class="modal-buttons">
+        <button class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
+        <button class="btn btn-primary" id="confirmAddBtn">Add Account</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="gs-modal" id="grandSlamModal" aria-hidden="true">
+    <div class="gs-content" role="dialog" aria-modal="true" aria-labelledby="gsTitle">
+      <div class="gs-header">
+        <div class="gs-title-wrap">
+          <div class="gs-emoji">🎉</div>
+          <div>
+            <div class="gs-title" id="gsTitle">Grand Slam: Ready to Set the Meeting</div>
+            <div class="gs-subtitle" id="gsSubtitle">You’ve completed discovery for this service.</div>
+          </div>
+        </div>
+        <button class="gs-close" id="gsCloseBtn" title="Close">X</button>
+      </div>
+
+      <div class="gs-block">
+        <h4>Email draft</h4>
+        <div class="gs-text" id="gsEmailText"></div>
+        <div class="gs-actions">
+          <button class="btn btn-secondary" id="copyEmailBtn">Copy Email</button>
+          <button class="btn btn-primary" id="openEmailBtn">Open Email Draft</button>
+        </div>
+      </div>
+
+      <div class="gs-block">
+        <h4>Phone talk track</h4>
+        <div class="gs-text" id="gsPhoneText"></div>
+        <div class="gs-actions">
+          <button class="btn btn-secondary" id="copyPhoneBtn">Copy Phone Script</button>
+          <button class="btn btn-secondary" id="copyBothBtn">Copy Both</button>
+        </div>
+      </div>
+
+      <div class="gs-foot">
+        <label><input type="checkbox" id="gsDontShowAgain" /> Don’t show this again for this account + service</label>
+        <button class="btn btn-primary" id="gsDoneBtn">Done</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const QUESTIONS_DB = {
+    'Managed Print Services': [
+      { id: 'fleet', question: 'How many desktop printers do you have scattered around?', strategy: 'Fleet' },
+      { id: 'supplies', question: 'Who orders toner for those desktop printers when they run out?', strategy: 'Supplies' },
+      { id: 'wish', question: 'If you could eliminate one printing headache, what would it be?', strategy: 'Wish' },
+      { id: 'security', question: 'Do users have to "badge in" to release print jobs?', strategy: 'Security' },
+      { id: 'expiry', question: 'When does the lease on your main copiers expire?', strategy: 'Expiry' },
+      { id: 'rules', question: 'Do you have rules to stop users printing emails and internal documents in color?', strategy: 'Rules' },
+      { id: 'scan', question: 'Are you scanning to cloud folders or just to email?', strategy: 'Scan' },
+      { id: 'service', question: 'When a printer breaks, what\'s the average wait for a tech?', strategy: 'Service' },
+      { id: 'cost', question: 'Do you know your total monthly spend on toner?', strategy: 'Cost' }
+    ],
+    'Copiers / MFPs': [
+      { id: 'model', question: 'What is your current model number?', strategy: 'Model' },
+      { id: 'config', question: 'How is it configured (finishers, hole punch)?', strategy: 'Config' },
+      { id: 'wish', question: 'If you could change any features, what would they be?', strategy: 'Wish' },
+      { id: 'term', question: 'When is your lease term up / months remaining?', strategy: 'Term' },
+      { id: 'payment', question: 'What is your lease payment?', strategy: 'Payment' },
+      { id: 'outsourced', question: 'Do you outsource or do color printing in house?', strategy: 'Outsourced' },
+      { id: 'outVol', question: 'If yes, how much do you outsource per month?', strategy: 'Out-Vol' },
+      { id: 'volume', question: 'What is your monthly volume (B/W & Color)?', strategy: 'Volume' },
+      { id: 'cpc', question: 'What is your current Cost Per Copy (CPC)?', strategy: 'CPC' }
+    ],
+    'Audio Visual': [
+      { id: 'platform', question: 'What platform are you using for meetings (Teams, Zoom, Webex)?', strategy: 'Platform' },
+      { id: 'count', question: 'How many conference rooms/huddle spaces do you have enabled?', strategy: 'Count' },
+      { id: 'wishlist', question: 'If you could fix one thing about how meetings start, what would it be?', strategy: 'Wishlist' },
+      { id: 'hardware', question: 'What brand of hardware (screens/cameras) is standard?', strategy: 'Hardware' },
+      { id: 'age', question: 'When was the last time those rooms were refreshed?', strategy: 'Age' },
+      { id: 'support', question: 'Who handles it when a room "goes down"—IT or a vendor?', strategy: 'Support' },
+      { id: 'expansion', question: 'Planning to add more rooms or signage in the next 12 months?', strategy: 'Expansion' },
+      { id: 'consistency', question: 'Do all your rooms work the same way, or does it vary?', strategy: 'Consistency' },
+      { id: 'budget', question: 'Do you have a set budget for maintenance, or is it break-fix?', strategy: 'Budget' }
+    ],
+    'Cyber Security': [
+      { id: 'defense', question: 'What are you using for Endpoint Protection?', strategy: 'Defense' },
+      { id: 'email', question: 'Do you have a 3rd party spam filter or just standard Microsoft/Google?', strategy: 'Email' },
+      { id: 'insurance', question: 'When does your Cyber Liability Insurance renew?', strategy: 'Insurance' },
+      { id: 'gap', question: 'Has your carrier required you to implement MFA everywhere yet?', strategy: 'Gap' },
+      { id: 'backups', question: 'How often are backups tested to ensure they can restore?', strategy: 'Backups' },
+      { id: 'regs', question: 'Do you have compliance needs like HIPAA, CMMC, or PCI?', strategy: 'Regs' },
+      { id: 'training', question: 'Do you run phishing simulations for your staff?', strategy: 'Training' },
+      { id: 'eyes', question: 'Who watches alerts at 2:00 AM—internal IT or a SOC?', strategy: 'Eyes' },
+      { id: 'budget', question: 'Is security budget separate from general IT budget?', strategy: 'Budget' }
+    ],
+    'UCaaS / VoIP': [
+      { id: 'vendor', question: 'Who are you currently using for your phone system?', strategy: 'Vendor' },
+      { id: 'seats', question: 'How many handsets or voice users do you have today?', strategy: 'Seats' },
+      { id: 'pain', question: 'Is there a feature (like texting) you wish you had but don\'t?', strategy: 'Pain' },
+      { id: 'contract', question: 'When does your current contract renew or expire?', strategy: 'Contract' },
+      { id: 'hardware', question: 'Are you using physical desk phones, softphones, or a mix?', strategy: 'Hardware' },
+      { id: 'crm', question: 'Does your phone system integrate with your CRM?', strategy: 'CRM' },
+      { id: 'center', question: 'Do you have a dedicated customer support team or call center?', strategy: 'Center' },
+      { id: 'quality', question: 'Experienced any outages or call quality issues lately?', strategy: 'Quality' },
+      { id: 'cost', question: 'Roughly what is your monthly spend per seat?', strategy: 'Cost' }
+    ],
+    'Managed IT': [
+      { id: 'model', question: 'Do you handle IT in-house or outsource it? If outsourced, who to? If in house, who is over that department?', strategy: 'Model' },
+      { id: 'users', question: 'How many total computer users do you support?', strategy: 'Users' },
+      { id: 'happiness', question: 'On a scale of 1-10, how happy are users with support speed?', strategy: 'Happiness' },
+      { id: 'cloud', question: 'Are servers on-premise or have you moved to the cloud?', strategy: 'Cloud' },
+      { id: 'date', question: 'When does your current support contract renew?', strategy: 'Date' },
+      { id: 'onboarding', question: 'How long does it take to set up a new employee?', strategy: 'Onboarding' },
+      { id: 'vcio', question: 'Do you get a quarterly strategic review from your provider?', strategy: 'vCIO' },
+      { id: 'afterHours', question: 'What happens if a server goes down on a Saturday?', strategy: 'After Hours' },
+      { id: 'billing', question: 'Are you paying a flat fee or billed extra for onsite visits?', strategy: 'Billing' }
+    ],
+    'Custom Software': [
+      { id: 'core', question: 'What main software does your team live in (ERP, CRM)?', strategy: 'Core' },
+      { id: 'manual', question: 'Is there a process still managed via heavy Excel sheets?', strategy: 'Manual' },
+      { id: 'bottleneck', question: 'If you could automate one manual task, what would it be?', strategy: 'Bottleneck' },
+      { id: 'silos', question: 'Do your systems "talk" to each other, or is there double-entry?', strategy: 'Silos' },
+      { id: 'legacy', question: 'Is there an old software you\'re afraid to update?', strategy: 'Legacy' },
+      { id: 'mobile', question: 'Does field staff have a mobile app, or do they wait for a PC?', strategy: 'Mobile' },
+      { id: 'data', question: 'Can you pull real-time reports, or does it take days?', strategy: 'Data' },
+      { id: 'ip', question: 'Do you own the source code for your custom apps?', strategy: 'IP' },
+      { id: 'budget', question: 'Is there a budget for Digital Transformation this year?', strategy: 'Budget' }
+    ]
+  };
+
+  const TALK_TRACKS = {
+    'Managed Print Services': {
+      subject: (ctx) => `Quick 15-min print workflow review`,
+      email: (ctx) =>
+`Hi ${ctx.contactOrThere},\n\nBased on our recent conversations, I have a clear picture of your print environment (fleet, supplies process, security, and the copier lease timing: ${ctx.expiry || "—"}).\n\nWould you be open to a quick 15-minute review next week to compare what you have today vs. a couple of options that reduce headaches and tighten control?\n\nIf helpful, I can come with 2–3 specific quick wins based on what you shared.`,
+      phone: (ctx) =>
+`Hi ${ctx.contactOrThere} — quick one.\n\nI’ve got a solid read on your print setup now, especially around ${ctx.wish || "the pain points you mentioned"} and your lease timing (${ctx.expiry || "—"}).\n\nCan we grab 15 minutes next week so I can show you a couple of options we see working for similar teams and see if any are worth exploring?`
+    },
+    'Copiers / MFPs': {
+      subject: (ctx) => `Before you renew: quick copier/MFP comparison`,
+      email: (ctx) =>
+`Hi ${ctx.contactOrThere},\n\nThanks again for the details on your current equipment (${ctx.model || "current model"}), volume (${ctx.volume || "—"}), and timing (${ctx.term || "—"}).\n\nBefore you simply renew with the incumbent, would you be open to a 20-minute comparison next week?\nI can show what’s changed in the market and whether there’s a savings or capability gap worth addressing.`,
+      phone: (ctx) =>
+`Hi ${ctx.contactOrThere} — you mentioned your term/timing is ${ctx.term || "—"}.\n\nBefore you renew, can we do a quick 20-minute comparison?\nI’ll bring options that match your volume (${ctx.volume || "—"}) and confirm whether your current costs/features still make sense.`
+    },
+    'Audio Visual': {
+      subject: (ctx) => `20-min meeting room consistency review`,
+      email: (ctx) =>
+`Hi ${ctx.contactOrThere},\n\nI captured your AV environment: platform (${ctx.platform || "—"}), number of rooms (${ctx.count || "—"}), and where the biggest meeting-start friction is (${ctx.wishlist || "—"}).\n\nWould you be open to a 20-minute review next week to walk through a simple consistency approach so rooms work the same way every time—especially if you’re planning changes in the next 12 months (${ctx.expansion || "—"})?`,
+      phone: (ctx) =>
+`Hi ${ctx.contactOrThere} — quick follow-up on your AV rooms.\n\nYou’re on ${ctx.platform || "your platform"} and you mentioned the main issue is ${ctx.wishlist || "how meetings start"}.\nCan we do 20 minutes next week so I can share a consistency playbook and see if it fits your environment?`
+    },
+    'Cyber Security': {
+      subject: (ctx) => `20-min cyber renewal gap check`,
+      email: (ctx) =>
+`Hi ${ctx.contactOrThere},\n\nYou mentioned your cyber insurance renews ${ctx.insurance || "—"} and you’re currently using ${ctx.defense || "your endpoint tool"} for endpoint protection.\n\nWould you be open to a quick 20-minute gap check next week?\nGoal: validate you’re aligned with common carrier requirements (MFA, backups/testing, monitoring) before renewal.`,
+      phone: (ctx) =>
+`Hi ${ctx.contactOrThere} — with your insurance renewal at ${ctx.insurance || "—"}, can we do a quick 20-minute gap check?\n\nI want to compare what carriers commonly require vs. what you have today (endpoint: ${ctx.defense || "—"}, MFA status: ${ctx.gap || "—"}).`
+    },
+    'UCaaS / VoIP': {
+      subject: (ctx) => `Quick phone system options review`,
+      email: (ctx) =>
+`Hi ${ctx.contactOrThere},\n\nThanks for sharing your current phone setup (vendor: ${ctx.vendor || "—"}, seats: ${ctx.seats || "—"}, renewal timing: ${ctx.contract || "—"}).\n\nWould you be open to a 20-minute review next week?\nI can show current options and confirm whether staying put is still your best move—especially given the feature gap you mentioned (${ctx.pain || "—"}).`,
+      phone: (ctx) =>
+`Hi ${ctx.contactOrThere} — you mentioned renewal timing is ${ctx.contract || "—"}.\n\nCan we do a quick 20 minutes next week to review options and confirm whether your current setup (vendor: ${ctx.vendor || "—"}, seats: ${ctx.seats || "—"}) is still the best fit?`
+    },
+    'Managed IT': {
+      subject: (ctx) => `30-min IT support renewal readiness review`,
+      email: (ctx) =>
+`Hi ${ctx.contactOrThere},\n\nBased on our conversations, I’ve got a clear snapshot: users (${ctx.users || "—"}), support satisfaction (${ctx.happiness || "—"}/10), and renewal timing (${ctx.date || "—"}).\n\nWould you be open to a 30-minute review next week to discuss what good looks like at renewal and whether there are gaps worth addressing?`,
+      phone: (ctx) =>
+`Hi ${ctx.contactOrThere} — quick one.\n\nYou rated support satisfaction ${ctx.happiness || "—"}/10 and renewal timing is ${ctx.date || "—"}.\nCan we grab 30 minutes next week so I can share what teams typically adjust at renewal to improve speed, onboarding, and after-hours coverage?`
+    },
+    'Custom Software': {
+      subject: (ctx) => `30-min automation + integration roadmap`,
+      email: (ctx) =>
+`Hi ${ctx.contactOrThere},\n\nYou mentioned your team lives in ${ctx.core || "your core system"} and still has manual work in spreadsheets (${ctx.manual || "—"}).\n\nWould you be open to a 30-minute roadmap conversation next week?\nGoal: identify 1–2 automation/integration priorities that remove friction and improve reporting speed (${ctx.data || "—"}).`,
+      phone: (ctx) =>
+`Hi ${ctx.contactOrThere} — quick follow-up on the manual process side.\n\nYou mentioned ${ctx.manual || "some spreadsheet-heavy work"} and reporting takes ${ctx.data || "—"}.\nCan we do 30 minutes next week so I can share a simple automation roadmap and help you prioritize what to tackle first?`
+    }
+  };
+
+  let accounts = [];
+  let currentAccountId = null;
+
+  const qs = (id) => document.getElementById(id);
+  const normalizeStr = (x) => (x || '').toString().trim();
+
+  function legacyCopy(text){
+    return new Promise((resolve, reject) => {
+      try{
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly','');
+        ta.style.position='fixed';
+        ta.style.top='-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        ok ? resolve(true) : reject(new Error('Copy failed'));
+      }catch(e){ reject(e); }
+    });
+  }
+
+  function safeClipboardWrite(text){
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(() => legacyCopy(text));
+    }
+    return legacyCopy(text);
+  }
+
+  function downloadBlob(filename, mimeType, data){
+    const blob = new Blob([data], {type: mimeType});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 250);
+  }
+
+  function saveToStorage(){
+    localStorage.setItem('moneyball_accounts', JSON.stringify(accounts));
+  }
+
+  function loadFromStorage(){
+    const saved = localStorage.getItem('moneyball_accounts');
+    if (saved){
+      try{ accounts = JSON.parse(saved) || []; }
+      catch(e){ accounts = []; }
+    }
+  }
+
+  function addAccount(name, industry, contact, startingService){
+    if (!normalizeStr(name)) return;
+
+    const id = Date.now().toString();
+    const account = {
+      id,
+      name: normalizeStr(name),
+      industry: normalizeStr(industry),
+      contact: normalizeStr(contact),
+      currentService: startingService || '',
+      createdAt: new Date().toISOString(),
+      answers: {},
+      gsDismissed: {}
+    };
+
+    accounts.push(account);
+    saveToStorage();
+    renderAccountList();
+    selectAccount(id);
+  }
+
+  function deleteAccount(id){
+    accounts = accounts.filter(a => a.id !== id);
+    saveToStorage();
+    currentAccountId = null;
+    renderAccountList();
+
+    if (accounts.length > 0) selectAccount(accounts[0].id);
+    else { renderDiscovery(); renderSummary(); }
+  }
+
+  function selectAccount(id){
+    currentAccountId = id;
+    renderAccountList();
+    renderDiscovery();
+    renderSummary();
+  }
+
+  function getCurrentAccount(){
+    return accounts.find(a => a.id === currentAccountId);
+  }
+
+  function calculateProgress(account, service=null){
+    const targetService = service || account.currentService;
+    if (!targetService || !QUESTIONS_DB[targetService]) return 0;
+    const questions = QUESTIONS_DB[targetService];
+    const answered = questions.filter(q => normalizeStr(account.answers[`${targetService}|${q.id}`])).length;
+    return Math.round((answered / questions.length) * 100);
+  }
+
+  function renderAccountList(){
+    const list = qs('accountList');
+
+    if (accounts.length === 0){
+      list.innerHTML = '<div class="empty-state" style="padding:16px;"><div class="empty-state-text">No accounts yet.</div></div>';
+      return;
+    }
+
+    list.innerHTML = accounts.map(account => {
+      const progress = calculateProgress(account);
+      const isActive = account.id === currentAccountId;
+      return `
+        <div class="account-item ${isActive ? 'active' : ''}" data-account-id="${account.id}">
+          <div style="flex:1;">
+            <div>${account.name}</div>
+            <div style="font-size:11px;opacity:0.7;margin-top:2px;">${account.currentService || 'No service'}</div>
+          </div>
+          <div class="account-progress">${progress}%</div>
+        </div>
+      `;
+    }).join('');
+
+    list.querySelectorAll('.account-item').forEach(el => {
+      el.addEventListener('click', () => selectAccount(el.dataset.accountId));
+    });
+  }
+
+  function renderDiscovery(){
+    const account = getCurrentAccount();
+    const content = qs('discoveryContent');
+
+    if (!account){
+      qs('discoveryTitle').textContent = 'No Account Selected';
+      qs('discoverySubtitle').textContent = 'Create or select an account to begin';
+      content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚾</div><div class="empty-state-text">Start by adding an account.</div></div>';
+      return;
+    }
+
+    const currentService = account.currentService;
+
+    qs('discoveryTitle').innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span>${account.name}</span>
+        <select id="serviceDropdown" class="form-input"
+          style="padding:6px 10px;border-radius:4px;font-size:13px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.1);color:white;max-width:250px;">
+          <option value="">Select a service...</option>
+          ${Object.keys(QUESTIONS_DB).map(service => `<option value="${service}" ${currentService === service ? 'selected' : ''}>${service}</option>`).join('')}
+        </select>
+      </div>
+    `;
+
+    qs('discoverySubtitle').textContent = `${currentService || 'No service selected'} • Discovery Progress`;
+
+    const dropdown = qs('serviceDropdown');
+    dropdown.addEventListener('change', (e) => {
+      account.currentService = e.target.value;
+      saveToStorage();
+      renderAccountList();
+      if (!account.currentService){
+        content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚾</div><div class="empty-state-text">Select a service to begin discovery.</div></div>';
+        renderSummary();
+        return;
+      }
+      renderDiscovery();
+      renderSummary();
+    });
+
+    if (!currentService || !QUESTIONS_DB[currentService]){
+      content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚾</div><div class="empty-state-text">Select a service from the dropdown to begin discovery.</div></div>';
+      return;
+    }
+
+    const questions = QUESTIONS_DB[currentService];
+    const html = questions.map((q, idx) => {
+      const key = `${currentService}|${q.id}`;
+      const answer = account.answers[key] || '';
+      const isAnswered = normalizeStr(answer) !== '';
+
+      const firstKey = `${currentService}|${questions[0].id}`;
+      const nextEmpty = !normalizeStr(account.answers[firstKey]) && idx === 0;
+
+      const prevAllAnswered = idx > 0 && questions.slice(0, idx)
+        .every(q2 => normalizeStr(account.answers[`${currentService}|${q2.id}`]));
+
+      const nextUnanswered = idx > 0 && !isAnswered && prevAllAnswered;
+      const isNext = nextEmpty || nextUnanswered;
+
+      return `
+        <div class="question-card ${isNext ? 'next' : ''} ${isAnswered ? 'answered' : ''}">
+          <div class="question-num">${q.strategy}</div>
+          <div class="question-text">${q.question}</div>
+          <textarea class="question-input" data-question-id="${key}" placeholder="Your answer...">${answer}</textarea>
+          <div class="saved-indicator ${isAnswered ? 'show' : ''}"></div>
+        </div>
+      `;
+    }).join('');
+
+    content.innerHTML = `
+      <div class="account-details">
+        <div class="detail-field"><div class="detail-label">Industry</div><div class="detail-value">${account.industry || '—'}</div></div>
+        <div class="detail-field"><div class="detail-label">Contact</div><div class="detail-value">${account.contact || '—'}</div></div>
+        <div class="detail-field"><div class="detail-label">Service</div><div class="detail-value">${currentService || '—'}</div></div>
+        <div class="detail-field"><div class="detail-label">Progress</div><div class="detail-value">${calculateProgress(account)}% Complete</div></div>
+      </div>
+      <div class="questions-container">${html}</div>
+    `;
+
+    content.querySelectorAll('.question-input').forEach(input => {
+      input.addEventListener('change', saveAnswer);
+      input.addEventListener('blur', saveAnswer);
+    });
+  }
+
+  function renderSummary(){
+    const account = getCurrentAccount();
+    const content = qs('summaryContent');
+
+    if (!account){
+      content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Select an account to view summary.</div></div>';
+      return;
+    }
+
+    const currentService = account.currentService;
+    if (!currentService){
+      content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">Select a service to view summary.</div></div>';
+      return;
+    }
+
+    const questions = QUESTIONS_DB[currentService] || [];
+    const progress = calculateProgress(account);
+    const answeredCount = questions.filter(q => normalizeStr(account.answers[`${currentService}|${q.id}`])).length;
+
+    let baseStatus = '';
+    let baseEmoji = '';
+    if (answeredCount === 0){ baseStatus = 'Home Plate'; baseEmoji = '🏠'; }
+    else if (answeredCount <= 3){ baseStatus = 'First Base'; baseEmoji = '1️⃣'; }
+    else if (answeredCount <= 6){ baseStatus = 'Second Base'; baseEmoji = '2️⃣'; }
+    else if (answeredCount < questions.length){ baseStatus = 'Third Base'; baseEmoji = '3️⃣'; }
+    else { baseStatus = 'Grand Slam!'; baseEmoji = '🎉'; }
+
+    const diamondSvg = `
+      <svg viewBox="0 0 200 200" style="width:140px;height:140px;margin:0 auto 12px;">
+        <polygon points="100,20 180,100 100,180 20,100" fill="none" stroke="#0047AB" stroke-width="2"/>
+        <circle cx="100" cy="180" r="10" fill="${answeredCount === 0 ? '#FF8C00' : 'rgba(255,140,0,0.2)'}" stroke="#0047AB" stroke-width="2"/>
+        <circle cx="180" cy="100" r="10" fill="${answeredCount >= 1 ? '#FF8C00' : 'rgba(255,140,0,0.2)'}" stroke="#0047AB" stroke-width="2"/>
+        <circle cx="100" cy="20" r="10" fill="${answeredCount >= 4 ? '#FF8C00' : 'rgba(255,140,0,0.2)'}" stroke="#0047AB" stroke-width="2"/>
+        <circle cx="20" cy="100" r="10" fill="${answeredCount >= 7 ? '#FF8C00' : 'rgba(255,140,0,0.2)'}" stroke="#0047AB" stroke-width="2"/>
+        <text x="100" y="205" text-anchor="middle" font-size="11" font-weight="bold" fill="#111827">H</text>
+        <text x="200" y="108" text-anchor="start" font-size="11" font-weight="bold" fill="#111827">1B</text>
+        <text x="100" y="-5" text-anchor="middle" font-size="11" font-weight="bold" fill="#111827">2B</text>
+        <text x="0" y="108" text-anchor="end" font-size="11" font-weight="bold" fill="#111827">3B</text>
+      </svg>
+    `;
+
+    let html = `
+      <div style="background: linear-gradient(135deg, rgba(0,71,171,0.05) 0%, rgba(255,140,0,0.05) 100%); padding: 12px; border-radius: 8px; margin-bottom: 16px;">
+        <div style="text-align: center; margin-bottom: 8px;">
+          <div style="font-size: 28px; margin-bottom: 4px;">${baseEmoji}</div>
+          <div style="font-size: 13px; font-weight: 700; color: #0047AB; margin-bottom: 4px;">${baseStatus}</div>
+          <div style="font-size: 11px; color: #4B5563;">${answeredCount}/${questions.length} Questions</div>
+        </div>
+        ${diamondSvg}
+      </div>
+
+      <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;"></div></div>
+      <div class="progress-text"><strong>${progress}%</strong> Complete</div>
+    `;
+
+    if (progress > 0){
+      const answered = questions
+        .filter(q => normalizeStr(account.answers[`${currentService}|${q.id}`]))
+        .sort((a,b) => a.strategy.localeCompare(b.strategy));
+
+      if (answered.length > 0){
+        html += '<div class="summary-section">';
+        html += '<div class="summary-section-title">Intelligence</div>';
+        answered.forEach(q => {
+          html += `
+            <div class="summary-item">
+              <div class="summary-label">${q.strategy}</div>
+              <div class="summary-value">${account.answers[`${currentService}|${q.id}`]}</div>
+            </div>
+          `;
+        });
+        html += '</div>';
+      }
+
+      const unanswered = questions.filter(q => !normalizeStr(account.answers[`${currentService}|${q.id}`]));
+      if (unanswered.length > 0){
+        html += '<div class="summary-section">';
+        html += '<div class="summary-section-title">Next Up</div>';
+        unanswered.slice(0,2).forEach(q => {
+          html += `<div style="font-size:11px;padding:6px;background:#FFA500;color:white;border-radius:3px;margin-bottom:4px;font-weight:600;">${q.strategy}</div>`;
+        });
+        html += '</div>';
+      }
+    }
+
+    content.innerHTML = html;
+  }
+
+  function getAnswer(account, service, id){
+    return normalizeStr(account.answers[`${service}|${id}`]);
+  }
+
+  function buildContext(account, service){
+    const ctx = {
+      accountName: account.name,
+      contact: normalizeStr(account.contact),
+      contactOrThere: normalizeStr(account.contact) || 'there',
+      service
+    };
+
+    if (service === 'Managed Print Services'){
+      ctx.expiry = getAnswer(account, service, 'expiry');
+      ctx.wish = getAnswer(account, service, 'wish');
+    }
+    if (service === 'Copiers / MFPs'){
+      ctx.model = getAnswer(account, service, 'model');
+      ctx.volume = getAnswer(account, service, 'volume');
+      ctx.term = getAnswer(account, service, 'term');
+    }
+    if (service === 'Audio Visual'){
+      ctx.platform = getAnswer(account, service, 'platform');
+      ctx.count = getAnswer(account, service, 'count');
+      ctx.wishlist = getAnswer(account, service, 'wishlist');
+      ctx.expansion = getAnswer(account, service, 'expansion');
+    }
+    if (service === 'Cyber Security'){
+      ctx.insurance = getAnswer(account, service, 'insurance');
+      ctx.defense = getAnswer(account, service, 'defense');
+      ctx.gap = getAnswer(account, service, 'gap');
+    }
+    if (service === 'UCaaS / VoIP'){
+      ctx.vendor = getAnswer(account, service, 'vendor');
+      ctx.seats = getAnswer(account, service, 'seats');
+      ctx.contract = getAnswer(account, service, 'contract');
+      ctx.pain = getAnswer(account, service, 'pain');
+    }
+    if (service === 'Managed IT'){
+      ctx.users = getAnswer(account, service, 'users');
+      ctx.happiness = getAnswer(account, service, 'happiness');
+      ctx.date = getAnswer(account, service, 'date');
+    }
+    if (service === 'Custom Software'){
+      ctx.core = getAnswer(account, service, 'core');
+      ctx.manual = getAnswer(account, service, 'manual');
+      ctx.data = getAnswer(account, service, 'data');
+    }
+
+    return ctx;
+  }
+
+  function shouldShowGrandSlam(account, service){
+    if (!account || !service) return false;
+    if (account.gsDismissed && account.gsDismissed[service]) return false;
+    return calculateProgress(account, service) === 100;
+  }
+
+  function openGrandSlamModal(account, service){
+    const modal = qs('grandSlamModal');
+    const ctx = buildContext(account, service);
+    const t = TALK_TRACKS[service] || null;
+    if (!t) return;
+
+    qs('gsTitle').textContent = `Grand Slam: ${account.name} • ${service}`;
+    qs('gsSubtitle').textContent = 'You completed all 9 questions. Use this to set the meeting.';
+
+    const subject = t.subject(ctx);
+    const email = t.email(ctx);
+    const phone = t.phone(ctx);
+
+    qs('gsEmailText').textContent = `Subject: ${subject}\n\n${email}`;
+    qs('gsPhoneText').textContent = phone;
+
+    qs('copyEmailBtn').onclick = () => safeClipboardWrite(`Subject: ${subject}\n\n${email}`);
+    qs('copyPhoneBtn').onclick = () => safeClipboardWrite(phone);
+    qs('copyBothBtn').onclick = () => safeClipboardWrite(`EMAIL:\nSubject: ${subject}\n\n${email}\n\nPHONE:\n${phone}`);
+
+    qs('openEmailBtn').onclick = () => {
+      const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(email)}`;
+      window.location.href = mailto;
+    };
+
+    qs('gsDontShowAgain').checked = false;
+
+    const close = () => {
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden','true');
+    };
+
+    qs('gsCloseBtn').onclick = close;
+    qs('gsDoneBtn').onclick = () => {
+      const dontShow = qs('gsDontShowAgain').checked;
+      if (dontShow){
+        account.gsDismissed = account.gsDismissed || {};
+        account.gsDismissed[service] = true;
+        saveToStorage();
+      }
+      close();
+    };
+
+    modal.addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'grandSlamModal') close();
+    }, { once:true });
+
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden','false');
+  }
+
+  function saveAnswer(e){
+    const account = getCurrentAccount();
+    if (!account) return;
+
+    const questionId = e.target.dataset.questionId;
+    const answer = e.target.value;
+
+    account.answers[questionId] = answer;
+    saveToStorage();
+
+    const indicator = e.target.nextElementSibling;
+    if (indicator && indicator.classList.contains('saved-indicator')){
+      indicator.classList.add('show');
+      setTimeout(() => indicator.classList.remove('show'), 1200);
+    }
+
+    renderAccountList();
+    renderSummary();
+
+    const currentService = account.currentService;
+    if (currentService && shouldShowGrandSlam(account, currentService)){
+      openGrandSlamModal(account, currentService);
+    }
+  }
+
+  function showAddModal(){
+    qs('addAccountModal').classList.add('active');
+    qs('accountNameInput').focus();
+  }
+
+  function hideAddModal(){
+    qs('addAccountModal').classList.remove('active');
+    qs('accountNameInput').value = '';
+    qs('accountIndustryInput').value = '';
+    qs('accountContactInput').value = '';
+    qs('accountCategoryInput').value = '';
+  }
+
+  function confirmAdd(){
+    const name = qs('accountNameInput').value;
+    const industry = qs('accountIndustryInput').value;
+    const contact = qs('accountContactInput').value;
+    const startingService = qs('accountCategoryInput').value;
+
+    if (!normalizeStr(name)){
+      alert('Please enter an account name');
+      return;
+    }
+
+    addAccount(name, industry, contact, startingService);
+    hideAddModal();
+  }
+
+  function deleteCurrentAccount(){
+    const account = getCurrentAccount();
+    if (!account) return;
+    if (confirm(`Are you sure you want to delete "${account.name}"?`)) deleteAccount(account.id);
+  }
+
+  function exportAsJson(){
+    const dataStr = JSON.stringify(accounts, null, 2);
+    const filename = `moneyball-discovery-${new Date().toISOString().split('T')[0]}.json`;
+    downloadBlob(filename, 'application/json', dataStr);
+  }
+
+  function exportAsCSV(){
+    let csv = 'Account Name,Industry,Contact,Service,Progress\n';
+
+    accounts.forEach(account => {
+      const services = Object.keys(QUESTIONS_DB).filter(service => {
+        const questions = QUESTIONS_DB[service];
+        return questions.some(q => normalizeStr(account.answers[`${service}|${q.id}`]));
+      });
+
+      if (services.length === 0){
+        csv += `"${account.name}","${account.industry}","${account.contact}","—",0\n`;
+      } else {
+        services.forEach(service => {
+          const progress = calculateProgress(account, service);
+          csv += `"${account.name}","${account.industry}","${account.contact}","${service}",${progress}\n`;
+
+          const questions = QUESTIONS_DB[service] || [];
+          questions.forEach(q => {
+            const answer = (account.answers[`${service}|${q.id}`] || '').replace(/"/g,'""');
+            const question = (q.question || '').replace(/"/g,'""');
+            csv += `,"${q.strategy}","${question}","${answer}"\n`;
+          });
+          csv += '\n';
+        });
+      }
+    });
+
+    const filename = `moneyball-discovery-${new Date().toISOString().split('T')[0]}.csv`;
+    downloadBlob(filename, 'text/csv', csv);
+  }
+
+  function setupEventListeners(){
+    qs('addAccountBtn').addEventListener('click', showAddModal);
+    qs('confirmAddBtn').addEventListener('click', confirmAdd);
+    qs('cancelAddBtn').addEventListener('click', hideAddModal);
+
+    qs('exportJsonBtn').addEventListener('click', exportAsJson);
+    qs('exportCsvBtn').addEventListener('click', exportAsCSV);
+    qs('deleteAccountBtn').addEventListener('click', deleteCurrentAccount);
+
+    qs('addAccountModal').addEventListener('click', (e) => {
+      if (e.target && e.target.id === 'addAccountModal') hideAddModal();
+    });
+
+    qs('accountNameInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') confirmAdd();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape'){
+        qs('addAccountModal').classList.remove('active');
+        qs('grandSlamModal').classList.remove('active');
+      }
+    });
+  }
+
+  function init(){
+    loadFromStorage();
+    setupEventListeners();
+    renderAccountList();
+    if (accounts.length > 0) selectAccount(accounts[0].id);
+  }
+
+  init();
+</script>
+</body>
+</html>
